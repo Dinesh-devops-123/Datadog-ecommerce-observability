@@ -1,0 +1,148 @@
+{
+  "title": "E-Commerce Storefront — SRE Observability",
+  "description": "Unified APM, Infrastructure, and Log Management dashboard for E-Commerce Checkout API",
+  "layout_type": "ordered",
+  "widgets": [
+    {
+      "definition": {
+        "title": "Checkout API — Total Hits (req/s)",
+        "type": "query_value",
+        "requests": [
+          {
+            "response_format": "scalar",
+            "formulas": [{ "formula": "query1" }],
+            "queries": [
+              {
+                "data_source": "metrics",
+                "name": "query1",
+                "query": "sum:trace.fastapi.request.hits{env:prod,service:ecommerce-checkout-api}.as_rate()",
+                "aggregator": "avg"
+              }
+            ]
+          }
+        ],
+        "autoscale": true,
+        "precision": 2
+      }
+    },
+    {
+      "definition": {
+        "title": "Checkout API — Error Rate (%)",
+        "type": "query_value",
+        "requests": [
+          {
+            "response_format": "scalar",
+            "formulas": [{ "formula": "(query1 / query2) * 100" }],
+            "queries": [
+              {
+                "data_source": "metrics",
+                "name": "query1",
+                "query": "sum:trace.fastapi.request.errors{env:prod,service:ecommerce-checkout-api}.as_count()",
+                "aggregator": "sum"
+              },
+              {
+                "data_source": "metrics",
+                "name": "query2",
+                "query": "sum:trace.fastapi.request.hits{env:prod,service:ecommerce-checkout-api}.as_count()",
+                "aggregator": "sum"
+              }
+            ]
+          }
+        ],
+        "precision": 2
+      }
+    },
+    {
+      "definition": {
+        "title": "API Latency Breakdown (p50, p95, p99)",
+        "type": "timeseries",
+        "requests": [
+          {
+            "response_format": "timeseries",
+            "formulas": [
+              { "formula": "query1", "alias": "p50 Latency" },
+              { "formula": "query2", "alias": "p95 Latency" },
+              { "formula": "query3", "alias": "p99 Latency" }
+            ],
+            "queries": [
+              {
+                "data_source": "metrics",
+                "name": "query1",
+                "query": "p50:trace.fastapi.request{env:prod,service:ecommerce-checkout-api}"
+              },
+              {
+                "data_source": "metrics",
+                "name": "query2",
+                "query": "p95:trace.fastapi.request{env:prod,service:ecommerce-checkout-api}"
+              },
+              {
+                "data_source": "metrics",
+                "name": "query3",
+                "query": "p99:trace.fastapi.request{env:prod,service:ecommerce-checkout-api}"
+              }
+            ],
+            "display_type": "line"
+          }
+        ]
+      }
+    },
+    {
+      "definition": {
+        "title": "Redis Cache Hits vs Misses",
+        "type": "timeseries",
+        "requests": [
+          {
+            "response_format": "timeseries",
+            "formulas": [
+              { "formula": "query1", "alias": "Cache Hits" },
+              { "formula": "query2", "alias": "Cache Misses" }
+            ],
+            "queries": [
+              {
+                "data_source": "metrics",
+                "name": "query1",
+                "query": "avg:redis.stats.keyspace_hits{env:prod}.as_rate()"
+              },
+              {
+                "data_source": "metrics",
+                "name": "query2",
+                "query": "avg:redis.stats.keyspace_misses{env:prod}.as_rate()"
+              }
+            ],
+            "display_type": "bars"
+          }
+        ]
+      }
+    },
+    {
+      "definition": {
+        "title": "PostgreSQL Active Connections",
+        "type": "timeseries",
+        "requests": [
+          {
+            "response_format": "timeseries",
+            "formulas": [{ "formula": "query1", "alias": "Active Connections" }],
+            "queries": [
+              {
+                "data_source": "metrics",
+                "name": "query1",
+                "query": "avg:postgresql.connections{env:prod}"
+              }
+            ],
+            "display_type": "area"
+          }
+        ]
+      }
+    },
+    {
+      "definition": {
+        "title": "Live Application Logs (Correlated with Trace IDs)",
+        "type": "log_stream",
+        "query": "service:ecommerce-checkout-api env:prod",
+        "columns": ["level", "dd.trace_id", "message"],
+        "show_date_column": true,
+        "show_message_column": true
+      }
+    }
+  ]
+}
